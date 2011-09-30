@@ -1,0 +1,91 @@
+<head>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js" type="text/javascript"></script>
+	<script type='text/javascript'>
+		jQuery.fn.onlyText = function() {
+			return $(this)	.clone()
+							.children()
+							.remove()
+							.end()
+							.text();
+
+		};
+		function cleanup(str) {
+			return jQuery.trim(str)
+					.replace(/(^\s*)|(\s)*$/g, '')
+					.replace(/\\\\/g,"\\\\\\\\")
+					.replace(/'/g,"\\\\'")
+					.replace(/[\n\r]/g," ## ")
+					.replace(/[ \t#]* #{2,} [ \t#]*/g," ## ");
+		}
+		function getTitle() { return "__TITLE__"; }
+		function getURL() { return "__URL__"; }
+		function getID() { 
+			var id = "__OUTPUT_NAME__";
+			return id.split(".")[0]; 
+		}
+		
+		$(function() {
+			var comments = [];
+			comments[0] = 
+					"INSERT INTO website (id, website, topic, title, url) "+
+					"VALUES ('"+getID()+"', '__NAME__', '__TOPIC__', '"+cleanup(getTitle())+"', '"+cleanup(getURL())+"');";
+			
+			var i = 1;
+			$(__WRAPPER__).each(function() {
+				var comment = cleanup($(__COMMENT__).text());
+				var date 	= cleanup($(__DATE__).text());
+				var user 	= cleanup($(__USER__).text());
+	
+				if(comment.length > 0 && user.length > 0) {
+					var queryTxt = 
+							"INSERT INTO comment (position_on_page, website_id, author, timestamp_str, comment) "+
+							"VALUES ("+(i++)+",'"+getID()+"', '"+user+"', '"+date+"', '"+comment+"');";
+					if(comment.length > 0 || date.length > 0 || user.length > 0)
+						comments[comments.length] = queryTxt;
+				}
+			});
+
+			function errorHandler(e) {
+				var msg = '';
+				switch (e.code) {
+				case FileError.QUOTA_EXCEEDED_ERR: 			msg = 'QUOTA_EXCEEDED_ERR'; break;
+				case FileError.NOT_FOUND_ERR: 				msg = 'NOT_FOUND_ERR'; break;
+				case FileError.SECURITY_ERR: 				msg = 'SECURITY_ERR'; break;
+				case FileError.INVALID_MODIFICATION_ERR: 	msg = 'INVALID_MODIFICATION_ERR'; break;
+				case FileError.INVALID_STATE_ERR: 			msg = 'INVALID_STATE_ERR'; break;
+				default: 									msg = 'Unknown Error'; break;
+				};
+				console.log('Error: ' + msg);
+			}
+
+			function onInitFs(fs) {
+				fs.root.getFile('__OUTPUT_NAME__', {create: true}, function(fileEntry) {
+
+					fileEntry.createWriter(function(fileWriter) {
+
+						fileWriter.onwriteend = function(e) {
+							console.log('write completed.');
+						};
+
+						fileWriter.onerror = function(e) {
+							console.log('write failed: ' + e.toString());
+						};
+
+						var bb = new window.WebKitBlobBuilder();
+						for(var i in comments) {
+							bb.append(comments[i]+'\n');
+						}
+						bb.append('\n-- finished');
+						fileWriter.write(bb.getBlob('text/plain'));
+
+					}, errorHandler);
+
+				}, errorHandler);
+
+			}
+
+			window.webkitRequestFileSystem(window.PERSISTENT, 1024*1024, onInitFs, errorHandler);
+
+		});
+	</script>
+</head>

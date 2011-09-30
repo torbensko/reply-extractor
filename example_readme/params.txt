@@ -1,0 +1,5 @@
+TOPIC=example
+WRAPPER=".entry"
+COMMENT=".comment",this
+USER=".author:first",this
+DATE="<div>"+$(".comment",this).data("date")+"</div>"

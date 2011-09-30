@@ -1,0 +1,141 @@
+--- LEGAL STUFF ---
+
+My code is provided under a Creative Commons Attribution license (for details
+please see: http://creativecommons.org/licenses/by/3.0/). In summary, you are
+free to use the code for any purpose as long as you remember to mention my
+name (Torben Sko) at some point. Also please note that my code is provided AS
+IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN,
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+
+--- PURPOSE ---
+
+This script will extract the comments from one more downloaded webpages and
+place them into a MySQL database. There's some overhead required in using this
+system, so I would only suggest using it if you really have a lot of comments
+you wish to extract and/or you know jQuery well.
+
+Personally, I used this system to collect together comments pertaining to my
+PhD topic. This was done in order to gauge the general opinion regarding my
+particular field of research.
+
+
+--- REQUIREMENTS ---
+
+Mac OSX: at this stage the script has not been designed for or tested on any
+other operating system
+
+Chrome 12: this script takes advantage of a feature only present in Chrome
+12 (in later versions, this feature has be modified)
+
+A local Apache server (already included as part of OSX, but you may need to
+enable it)
+
+A local MySQL database
+
+
+--- INSTRUCTIONS ---
+
+0. Download a copy of this Git repo and place it under a folder served up by your local webserver e.g. ~/Sites/comment_extractor
+
+1. Download and install Chrome 12. There are several sites on the web that
+provide earlier versions of software, such as http://www.afterdawn.com (this
+is not an endorsement of that site - use it at your own risk)
+
+2. To avoid having Chrome automatically update itself, run the following
+command in the Terminal:
+
+defaults write com.google.Keystone.Agent checkInterval 0
+
+3. Launch Chrome, navigate to a site you wish to extract the comments from and
+save it to your copy of this Git repo. Of note:
+
+3.1 The page should be named p1.html for the first page, p2.html for the
+second and so on
+
+3.2 Ideally the pages should be saved into a folder with the same name as the
+site, without any spaces or special characters e.g. example_reddit
+
+3.3 Save it as a complete webpage in case you wish to reexamine the site later
+(good for record keeping purposes)
+
+4. For each folder/site, we need to define a set of jQuery selectors that
+will help us select the data we need. These selectors are defined in a
+parameters file (params.txt) saved in each folder. Assuming our webpage
+contained the following markup:
+
+<div class="entry">
+	<span class="author">User 1</span>
+	<span class="author">unwanted content</span>
+	<span class="comment" data-date="timestamp 1">Comment 1</span>
+</div>
+<div class="entry">
+	<span class="author">User 2</span>
+	<span class="author">unwanted content</span>
+	<span class="comment" data-date="timestamp 2">Comment 2</span>
+</div>
+
+The contents of the parameters file would be as follows (excluding the
+preceding line numbers and colons):
+
+1: TOPIC=example
+2: WRAPPER=".entry"
+3: COMMENT=".comment",this
+4: USER=".author:first",this
+5: DATE="<div>"+$(".comment",this).data("date")+"</div>"
+
+line 1: A text value that simply allows you group one or more of your pages by
+a topic
+
+line 2: A jQuery selector to grab the container element holding each comment
+and associated timestamp and author
+
+line 3: A jQuery selector to grab the comment, where 'this' represents the
+previously selected container element
+
+line 4: A jQuery selector to grab the author. As there are two elements with
+the 'author' class within each container, we use ':first' to only select the
+first
+
+line 5: A jQuery selector to grab the date. As the date is provided as a data
+attribute of the comment element, we use the .data() method to grab the value
+
+To extract the value selected by 3, 4 and 5, the .text() method is used, hence
+why for 5 we rewrapped our result in a div tag. If you find these selectors
+confusing, please refer to the jQuery documentation (more details are
+available at: http://api.jquery.com/category/selectors/)
+
+When writing the selectors for a new site I would suggest, from within Chrome,
+right clicking on the content you are wanting to extract and selecting
+"Inspect Element". This will allow you to view the page's DOM and help you
+construct an appropriate selector.
+
+5. Open the Terminal, navigate to your repo folder (i.e. the one which holds
+the downloaded webpages). Before you can start, you need to setup the MySQL
+database, which can be done so using the following command (this will wipe
+your existing 'comments' database, so be careful):
+
+mysql -u root < schema.sql
+
+6. To process the files, run the command: 
+
+./run_me.sh
+
+If it halts on any of the webpages, try running the command again. Any sites
+that were processed successfully before will not be processed again.
+
+7. To view your compiled comments run MySQL and switch to the 'comments'
+database. The following command will display your comments:
+
+SELECT website_id, author, comment FROM full_comment
+
+which should yield the following:
+
+website_id          author   comment  
+example_readme-p1   User 1   Comment 1
+example_readme-p1   User 2   Comment 2
+example_reddit-p1   user1    comment 1
+example_reddit-p1   user2    comment 2
+example_reddit-p1   user3    comment 3
+example_reddit-p1   user4    comment 4
+example_reddit-p1   user5    comment 5
