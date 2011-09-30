@@ -36,7 +36,8 @@ A local MySQL database
 
 --- INSTRUCTIONS ---
 
-0. Download a copy of this Git repo and place it under a folder served up by your local webserver e.g. ~/Sites/comment_extractor
+0. Download a copy of this Git repo and place it under a folder served up by
+your local webserver e.g. ~/Sites/comment_extractor
 
 1. Download and install Chrome 12. There are several sites on the web that
 provide earlier versions of software, such as http://www.afterdawn.com (this
